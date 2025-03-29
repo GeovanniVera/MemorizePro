@@ -30,13 +30,14 @@ class AuthService {
 
   // Método para login
   static Future<User?> login(String email, String password) async {
-    final user = _getUserByEmail(email);
+  final user = _getUserByEmail(email);
 
-    if (user != null && _verifyPassword(password, user.password)) {
-      return user;
-    }
-    return null;
+  if (user != null && _verifyPassword(password, user.password)) {
+    _currentUser = user; // ¡Esto es lo que faltaba!
+    return user;
   }
+  return null;
+}
 
   // Métodos auxiliares
   static bool _userExists(String email) =>

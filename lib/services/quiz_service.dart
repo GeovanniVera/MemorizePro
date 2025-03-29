@@ -4,82 +4,88 @@ import '../services/auth_service.dart';
 
 class QuizService {
   static final List<Quiz> _quizzes = [];
-
   static List<Quiz> get quizzes => List.unmodifiable(_quizzes);
 
-  static void createQuiz(String title, List<Question> questions) {
+  static Quiz createQuiz(String title, List<Question> questions) {
+    final user = AuthService.currentUser;
+
+    if (user == null) {
+      throw Exception('Debes iniciar sesión para crear un quiz');
+    }
+
     if (title.isEmpty) throw ArgumentError('El título del quiz es requerido');
     if (questions.isEmpty)
       throw ArgumentError('Debe contener al menos una pregunta');
 
-    final userEmail = AuthService.currentUser?.email ?? 'Anónimo';
-
-    _quizzes.add(
-      Quiz(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        title: title.trim(),
-        questions: questions,
-        createdBy: userEmail,
-        createdAt: DateTime.now(),
-      ),
+    final newQuiz = Quiz(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: title.trim(),
+      questions: questions,
+      createdBy: user.id, // Usamos user.id en lugar de user.uid
+      createdAt: DateTime.now(),
     );
+
+    _quizzes.add(newQuiz);
+    return newQuiz;
   }
 
-  static bool updateQuiz(String quizId, Quiz updatedQuiz) {
+  static Quiz updateQuiz(String quizId, Quiz updatedQuiz) {
     _validateQuizOwnership(quizId);
 
     final index = _quizzes.indexWhere((q) => q.id == quizId);
-    if (index == -1) return false;
+    if (index == -1) throw Exception('Quiz no encontrado');
 
     if (updatedQuiz.title.isEmpty) throw ArgumentError('Título inválido');
     if (updatedQuiz.questions.isEmpty)
       throw ArgumentError('Debe contener preguntas');
 
-    _quizzes[index] = updatedQuiz.copyWith(updatedAt: DateTime.now());
-    return true;
+    final updated = updatedQuiz.copyWith(
+      updatedAt: DateTime.now(),
+      createdBy: _quizzes[index].createdBy, // Mantener el creador original
+    );
+
+    _quizzes[index] = updated;
+    return updated;
   }
 
-  static bool deleteQuiz(String quizId) {
+  static void deleteQuiz(String quizId) {
     _validateQuizOwnership(quizId);
-    final initialLength = _quizzes.length;
+    if (!_quizzes.any((q) => q.id == quizId)) {
+      throw Exception('Quiz no encontrado');
+    }
     _quizzes.removeWhere((quiz) => quiz.id == quizId);
-    return _quizzes.length < initialLength; // Verifica si se eliminó
   }
 
   static bool deleteQuestion(String quizId, int questionIndex) {
     _validateQuizOwnership(quizId);
-
-    final quiz = _quizzes.firstWhere(
-      (q) => q.id == quizId,
-      orElse: () => throw Exception('Quiz no encontrado'),
-    );
+    final quiz = getQuizById(quizId)!;
 
     if (questionIndex < 0 || questionIndex >= quiz.questions.length) {
       throw RangeError('Índice de pregunta inválido');
     }
 
-    quiz.questions.removeAt(questionIndex);
+    final updatedQuestions = List<Question>.from(quiz.questions)
+      ..removeAt(questionIndex);
+    updateQuiz(quizId, quiz.copyWith(questions: updatedQuestions));
     return true;
   }
 
-  static bool updateQuestion(
+  static Quiz updateQuestion(
     String quizId,
     int questionIndex,
     Question updatedQuestion,
   ) {
     _validateQuizOwnership(quizId);
-
-    final quiz = _quizzes.firstWhere(
-      (q) => q.id == quizId,
-      orElse: () => throw Exception('Quiz no encontrado'),
-    );
+    final quiz = getQuizById(quizId)!;
 
     if (questionIndex < 0 || questionIndex >= quiz.questions.length) {
       throw RangeError('Índice de pregunta inválido');
     }
 
-    quiz.questions[questionIndex] = updatedQuestion;
-    return true;
+    final updatedQuestions = List<Question>.from(quiz.questions)
+      ..[questionIndex] = updatedQuestion;
+
+    return updateQuiz(quizId, quiz.copyWith(questions: updatedQuestions));
   }
 
   static Quiz? getQuizById(String quizId) {
@@ -108,11 +114,15 @@ class QuizService {
 
   // Validación de propiedad
   static void _validateQuizOwnership(String quizId) {
-    final quiz = getQuizById(quizId);
-    final currentUser = AuthService.currentUser?.email;
+    final user = AuthService.currentUser;
+    if (user == null) throw Exception('Usuario no autenticado');
 
-    if (quiz != null && quiz.createdBy != currentUser) {
-      throw Exception('No tienes permisos para modificar este quiz');
+    final quiz = getQuizById(quizId);
+    if (quiz == null) throw Exception('Quiz no encontrado');
+
+    // Comparación segura convirtiendo a string
+    if (quiz.createdBy != user.id) {
+      throw Exception('Solo el creador puede modificar este quiz');
     }
   }
 }

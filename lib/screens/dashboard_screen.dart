@@ -72,7 +72,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _logout() {
     AuthService.logout();
-    Navigator.pushReplacementNamed(context, '/login');
+    Navigator.pushReplacementNamed(context, '/');
   }
 
   @override

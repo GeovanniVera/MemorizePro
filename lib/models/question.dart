@@ -14,7 +14,7 @@ class Question {
   }) : createdAt = createdAt ?? DateTime.now(),
        assert(questionText.isNotEmpty, 'El texto de la pregunta es requerido'),
        assert(correctAnswer.isNotEmpty, 'La respuesta correcta es requerida'),
-       assert(wrongAnswers.length == 3, 'Debe tener 3 respuestas incorrectas'),
+       assert(wrongAnswers.length == 2, 'Debe tener 2 respuestas incorrectas'),
        assert(
          wrongAnswers.every((a) => a.isNotEmpty),
          'Respuestas incorrectas no pueden estar vacías',
