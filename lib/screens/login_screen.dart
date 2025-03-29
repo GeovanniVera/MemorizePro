@@ -85,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     'Iniciar Sesión',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                      color: const Color.fromARGB(255, 27, 67, 154) ,
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -160,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child:
             _isLoading
                 ? const CircularProgressIndicator(color: Colors.white)
-                : const Text('Ingresar', style: TextStyle(fontSize: 16)),
+                : const Text('Ingresar', style: TextStyle(fontSize: 16, color:Color.fromARGB(255, 27, 67, 154) )),
       ),
     );
   }
@@ -176,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 context,
                 MaterialPageRoute(builder: (context) => const RegisterScreen()),
               ),
-          child: const Text('Regístrate aquí'),
+          child: const Text('Regístrate aquí', style: TextStyle(fontSize: 16,color: Color.fromARGB(255, 27, 67, 154) )),
         ),
       ],
     );

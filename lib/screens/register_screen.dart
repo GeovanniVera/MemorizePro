@@ -77,7 +77,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     'Crear Cuenta',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                      color: const Color.fromARGB(255, 27, 67, 154) ,
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -189,7 +189,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child:
             _isLoading
                 ? const CircularProgressIndicator(color: Colors.white)
-                : const Text('Registrarse', style: TextStyle(fontSize: 16)),
+                : const Text('Registrarse', style: TextStyle(fontSize: 16,color: Color.fromARGB(255, 27, 67, 154) )),
       ),
     );
   }
@@ -201,7 +201,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         const Text('¿Ya tienes cuenta?'),
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Iniciar Sesión'),
+          child: const Text('Iniciar Sesión', style: TextStyle(color:  Color.fromARGB(255, 27, 67, 154) ,)),
         ),
       ],
     );

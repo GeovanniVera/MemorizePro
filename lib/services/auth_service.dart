@@ -33,7 +33,7 @@ class AuthService {
   final user = _getUserByEmail(email);
 
   if (user != null && _verifyPassword(password, user.password)) {
-    _currentUser = user; // ¡Esto es lo que faltaba!
+    _currentUser = user; 
     return user;
   }
   return null;

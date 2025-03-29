@@ -13,7 +13,7 @@ class HomeScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF6A1B9A), Color(0xFF9C27B0), Color(0xFFE1BEE7)],
+            colors: [Color.fromARGB(255, 27, 42, 154), Color.fromARGB(255, 39, 82, 176), Color.fromARGB(255, 190, 219, 231)],
           ),
         ),
         child: Padding(
@@ -24,11 +24,11 @@ class HomeScreen extends StatelessWidget {
               CircleAvatar(
                 radius: 60,
                 backgroundColor: Colors.white,
-                child: Icon(Icons.quiz, size: 70, color: Color(0xFF6A1B9A)),
+                child: Icon(Icons.quiz, size: 70, color: Color.fromARGB(255, 9, 29, 156)),
               ),
               SizedBox(height: 30),
               Text(
-                'Quizzlet',
+                'MemorizaPro',
                 style: TextStyle(
                   fontSize: 40,
                   fontWeight: FontWeight.bold,
@@ -38,7 +38,7 @@ class HomeScreen extends StatelessWidget {
               ),
               SizedBox(height: 15),
               Text(
-                'Crea, comparte y resuelve cuestionarios interactivos',
+                'Crea, memoriza y resuelve cuestionarios interactivos',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18,
@@ -80,10 +80,10 @@ class HomeScreen extends StatelessWidget {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: isFilled ? Colors.white : Colors.transparent,
-          foregroundColor: isFilled ? Color(0xFF6A1B9A) : Colors.white,
+          foregroundColor: isFilled ? Color.fromARGB(255, 27, 67, 154) : Colors.white,
           padding: EdgeInsets.symmetric(vertical: 15),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(10),
             side: BorderSide(color: Colors.white),
           ),
           elevation: 5,
