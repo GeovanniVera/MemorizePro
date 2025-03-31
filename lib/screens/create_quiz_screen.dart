@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/question.dart';
 import '../services/quiz_service.dart';
-import '../widgets/edit_question_dialog.dart'; // Asume que este widget existe
+import '../widgets/edit_question_dialog.dart';
+import 'package:flutter/services.dart';
 
 class CreateQuizScreen extends StatefulWidget {
   const CreateQuizScreen({super.key});
@@ -224,11 +225,33 @@ class __QuestionDialogState extends State<_QuestionDialog> {
   Widget _buildQuestionField() {
     return TextFormField(
       controller: _controllers[0],
+      inputFormatters: [
+        // Permite espacios internos pero bloquea:
+        FilteringTextInputFormatter.deny(
+          RegExp(r'^\s|'),
+        ), // 1. Espacios iniciales/finales
+        LengthLimitingTextInputFormatter(50),
+      ],
       decoration: InputDecoration(
         labelText: 'Pregunta',
         border: OutlineInputBorder(),
       ),
-      validator: (value) => value!.isEmpty ? 'Campo obligatorio' : null,
+      validator: (value) {
+        final trimmedValue = value?.trim() ?? '';
+        if (trimmedValue.isEmpty) return 'Campo obligatorio';
+        if (trimmedValue.length > 50) return 'Máximo 50 caracteres';
+        if (value!.contains('  ')) return 'No se permiten espacios dobles';
+        return null;
+      },
+      onChanged: (value) {
+        // Auto-corrección de múltiples espacios
+        if (value.contains('  ')) {
+          _controllers[0].text = value.replaceAll('  ', ' ');
+          _controllers[0].selection = TextSelection.fromPosition(
+            TextPosition(offset: _controllers[0].text.length),
+          );
+        }
+      },
     );
   }
 
@@ -237,11 +260,24 @@ class __QuestionDialogState extends State<_QuestionDialog> {
       children: [
         TextFormField(
           controller: _controllers[1],
+          inputFormatters: [
+            FilteringTextInputFormatter.deny(
+              RegExp(r'^\s|'),
+            ), // 1. Espacios iniciales/finales
+            LengthLimitingTextInputFormatter(50),
+          ],
           decoration: InputDecoration(
             labelText: 'Respuesta Correcta',
             border: OutlineInputBorder(),
+            counterText: '',
           ),
-          validator: (value) => value!.isEmpty ? 'Campo obligatorio' : null,
+          maxLength: 50,
+          validator: (value) {
+            final trimmedValue = value?.trim() ?? '';
+            if (trimmedValue.isEmpty) return 'Campo obligatorio';
+            if (trimmedValue.length > 50) return 'Máximo 50 caracteres';
+            return null;
+          },
         ),
         ...List.generate(
           2,
@@ -249,11 +285,24 @@ class __QuestionDialogState extends State<_QuestionDialog> {
             padding: EdgeInsets.only(top: 10),
             child: TextFormField(
               controller: _controllers[index + 2],
+              inputFormatters: [
+                FilteringTextInputFormatter.deny(
+                  RegExp(r'^\s|'),
+                ), // 1. Espacios iniciales/finales
+                LengthLimitingTextInputFormatter(50),
+              ],
               decoration: InputDecoration(
                 labelText: 'Respuesta Incorrecta ${index + 1}',
                 border: OutlineInputBorder(),
+                counterText: '',
               ),
-              validator: (value) => value!.isEmpty ? 'Campo obligatorio' : null,
+              maxLength: 50,
+              validator: (value) {
+                final trimmedValue = value?.trim() ?? '';
+                if (trimmedValue.isEmpty) return 'Campo obligatorio';
+                if (trimmedValue.length > 50) return 'Máximo 50 caracteres';
+                return null;
+              },
             ),
           ),
         ),

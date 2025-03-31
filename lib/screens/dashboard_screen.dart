@@ -25,40 +25,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _filterQuizzes();
   }
 
-  void _refresh() {
-    setState(() {
-      _filterQuizzes();
-    });
-  }
+  void _refresh() => setState(_filterQuizzes);
 
   void _filterQuizzes() {
-    _filteredQuizzes =
-        QuizService.quizzes.where((quiz) {
-          return quiz.title.toLowerCase().contains(_searchQuery.toLowerCase());
-        }).toList();
+    _filteredQuizzes = QuizService.quizzes
+        .where((quiz) => quiz.title.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
   }
 
   Future<void> _confirmDelete(String quizId) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Eliminar Quiz'),
-            content: const Text('¿Estás seguro de querer eliminar este quiz?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text(
-                  'Eliminar',
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar Quiz'),
+        content: const Text('¿Estás seguro de querer eliminar este quiz?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
           ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
     );
 
     if (confirmed == true) {
@@ -79,33 +73,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          children: [
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Buscar quizzes...',
-                prefixIcon: const Icon(Icons.search),
-                border: InputBorder.none,
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() {
-                      _searchQuery = '';
-                      _filterQuizzes();
-                    });
-                  },
-                ),
+        title: SizedBox(
+          height: 40,
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Buscar quizzes...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
               ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                  _filterQuizzes();
-                });
-              },
+              filled: true,
+              contentPadding: EdgeInsets.zero,
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {
+                          _searchQuery = '';
+                          _filterQuizzes();
+                        });
+                      },
+                    )
+                  : null,
             ),
-          ],
+            onChanged: (value) => setState(() {
+              _searchQuery = value;
+              _filterQuizzes();
+            }),
+          ),
         ),
         actions: [
           IconButton(
@@ -131,46 +129,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _refresh();
         },
       ),
-      body:
-          _filteredQuizzes.isEmpty
-              ? _buildEmptyState()
-              : Padding(
+      body: _filteredQuizzes.isEmpty
+          ? _buildEmptyState()
+          : SingleChildScrollView(
+              child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: GridView.builder(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount:
-                        MediaQuery.of(context).size.width > 600 ? 2 : 1,
-                    childAspectRatio: 3,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                  ),
-                  itemCount: _filteredQuizzes.length,
-                  itemBuilder: (context, index) {
-                    final quiz = _filteredQuizzes[index];
-                    return QuizItem(
+                child: Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: _filteredQuizzes.map((quiz) => SizedBox(
+                    width: 400,
+                    child: QuizItem(
                       quiz: quiz,
                       onEdit: () async {
                         final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder:
-                                (context) => EditQuizScreen(initialQuiz: quiz),
-                          ),
+                            builder: (context) => EditQuizScreen(initialQuiz: quiz)),
                         );
                         if (result == true) _refresh();
                       },
                       onDelete: () => _confirmDelete(quiz.id),
-                      onPlay:
-                          () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => QuizScreen(quizId: quiz.id),
-                            ),
-                          ),
-                    );
-                  },
+                      onPlay: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => QuizScreen(quizId: quiz.id)),
+                      ),
+                    ),
+                  )).toList(),
                 ),
               ),
+            ),
     );
   }
 

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'dashboard_screen.dart';
 import 'register_screen.dart';
+import 'package:flutter/services.dart'; 
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -50,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.toString()}'),
+          content: Text('El usuario no existe.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -105,46 +107,70 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildEmailField() {
-    return TextFormField(
-      controller: _emailController,
-      keyboardType: TextInputType.emailAddress,
-      decoration: InputDecoration(
-        labelText: 'Correo Electrónico',
-        prefixIcon: const Icon(Icons.email),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-      validator: (value) {
-        if (value!.isEmpty) return 'Ingrese su correo electrónico';
-        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-          return 'Correo electrónico inválido';
-        }
-        return null;
-      },
-    );
-  }
 
-  Widget _buildPasswordField() {
-    return TextFormField(
-      controller: _passwordController,
-      obscureText: _obscurePassword,
-      decoration: InputDecoration(
-        labelText: 'Contraseña',
-        prefixIcon: const Icon(Icons.lock),
-        suffixIcon: IconButton(
-          icon: Icon(
-            _obscurePassword ? Icons.visibility : Icons.visibility_off,
-          ),
-          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-        ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+Widget _buildEmailField() {
+  return TextFormField(
+    controller: _emailController,
+    keyboardType: TextInputType.emailAddress,
+    inputFormatters: [
+      FilteringTextInputFormatter.deny(RegExp(r'\s')) // Parentesis faltante añadido
+    ],
+    decoration: InputDecoration(
+      labelText: 'Correo Electrónico',
+      prefixIcon: const Icon(Icons.email),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+    validator: (value) {
+      final trimmedValue = value?.trim() ?? '';
+      
+      if (trimmedValue.isEmpty) return 'Ingrese su correo electrónico';
+      
+      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(trimmedValue)) {
+        return 'Correo electrónico inválido';
+      }
+      
+      final domain = trimmedValue.split('@').last.toLowerCase();
+      if (domain != 'gmail.com' && domain != 'outlook.com') {
+        return 'Solo se permiten correos de gmail.com o outlook.com';
+      }
+      
+      return null;
+    },
+    // Corregido el onChanged para evitar loop infinito
+    onChanged: (value) {
+      if (value.trim() != _emailController.text) {
+        _emailController.text = value.trim();
+        _emailController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _emailController.text.length),
+        );
+      }
+    },
+  );
+}
+
+Widget _buildPasswordField() {
+  return TextFormField(
+    controller: _passwordController,
+    obscureText: _obscurePassword,
+    inputFormatters: [
+      FilteringTextInputFormatter.deny(RegExp(r'\s')) // Bloquea espacios
+    ],
+    decoration: InputDecoration(
+      labelText: 'Contraseña',
+      prefixIcon: const Icon(Icons.lock),
+      suffixIcon: IconButton(
+        icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
       ),
-      validator: (value) {
-        if (value!.isEmpty) return 'Ingrese su contraseña';
-        return null;
-      },
-    );
-  }
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+    validator: (value) {
+      final trimmedValue = value?.trim() ?? '';
+      if (trimmedValue.isEmpty) return 'Ingrese su contraseña';
+      return null;
+    },
+  );
+}
 
   Widget _buildSubmitButton() {
     return SizedBox(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:quizlet/models/question.dart';
 import 'package:quizlet/widgets/edit_question_dialog.dart';
 import 'package:quizlet/models/quiz.dart';
@@ -24,12 +25,71 @@ class _EditQuizScreenState extends State<EditQuizScreen> {
   }
 
   void _saveChanges() {
-    if (_formKey.currentState!.validate() && _editedQuiz.questions.isNotEmpty) {
+    if (_formKey.currentState!.validate()) {
+      String? validationError;
+
+      // Validación del título
+      if (_editedQuiz.title.trim().isEmpty ||
+          _editedQuiz.title.length > 50 ||
+          _editedQuiz.title.contains('  ')) {
+        validationError =
+            'Título inválido: Máx 50 caracteres y sin espacios dobles';
+      }
+
+      // Validación de preguntas y respuestas
+      if (validationError == null) {
+        for (var question in _editedQuiz.questions) {
+          if (question.questionText.trim().isEmpty ||
+              question.questionText.length > 50 ||
+              question.questionText.contains('  ')) {
+            validationError = 'Pregunta inválida: Revise el formato';
+            break;
+          }
+
+          if (question.correctAnswer.trim().isEmpty ||
+              question.correctAnswer.length > 50 ||
+              question.correctAnswer.contains('  ')) {
+            validationError = 'Respuesta correcta inválida';
+            break;
+          }
+
+          for (var answer in question.wrongAnswers) {
+            if (answer.trim().isEmpty ||
+                answer.length > 50 ||
+                answer.contains('  ')) {
+              validationError = 'Respuesta incorrecta inválida';
+              break;
+            }
+          }
+          if (validationError != null) break;
+        }
+      }
+
+      if (validationError != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(validationError),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+
+      if (_editedQuiz.questions.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('El quiz debe tener al menos una pregunta'),
+          ),
+        );
+        return;
+      }
+
       QuizService.updateQuiz(widget.initialQuiz.id, _editedQuiz);
       Navigator.pop(context, true);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Quiz actualizado exitosamente')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Quiz actualizado exitosamente')),
+      );
     }
   }
 
@@ -47,27 +107,36 @@ class _EditQuizScreenState extends State<EditQuizScreen> {
   }
 
   void _deleteQuestion(int index) {
-    setState(() => _editedQuiz.questions.removeAt(index));
+    if (_editedQuiz.questions.length > 1) {
+      setState(() => _editedQuiz.questions.removeAt(index));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El quiz debe tener al menos una pregunta'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 
   Future<bool> _onWillPop() async {
     if (_editedQuiz == widget.initialQuiz) return true;
-    return await showDialog(
+    return await showDialog<bool>(
           context: context,
           builder:
               (context) => AlertDialog(
-                title: Text('¿Descartar cambios?'),
-                content: Text(
+                title: const Text('¿Descartar cambios?'),
+                content: const Text(
                   'Tienes cambios sin guardar. ¿Seguro que quieres salir?',
                 ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, false),
-                    child: Text('Cancelar'),
+                    child: const Text('Cancelar'),
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(context, true),
-                    child: Text('Salir'),
+                    child: const Text('Salir'),
                   ),
                 ],
               ),
@@ -81,9 +150,9 @@ class _EditQuizScreenState extends State<EditQuizScreen> {
       onWillPop: _onWillPop,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Editar Quiz'),
+          title: const Text('Editar Quiz'),
           actions: [
-            IconButton(icon: Icon(Icons.save), onPressed: _saveChanges),
+            IconButton(icon: const Icon(Icons.save), onPressed: _saveChanges),
           ],
         ),
         body: Padding(
@@ -96,26 +165,38 @@ class _EditQuizScreenState extends State<EditQuizScreen> {
                   initialValue: _editedQuiz.title,
                   decoration: InputDecoration(
                     labelText: 'Título del Quiz',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.title),
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.title),
+                    counterText: '',
                   ),
-                  validator:
-                      (value) => value!.isEmpty ? 'Ingrese un título' : null,
-                  onChanged: (value) => _editedQuiz.title = value,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.deny(RegExp(r'^\s|')),
+                    LengthLimitingTextInputFormatter(50),
+                  ],
+                  maxLength: 50,
+                  validator: (value) {
+                    final trimmedValue = value?.trim() ?? '';
+                    if (trimmedValue.isEmpty) return 'Ingrese un título';
+                    if (trimmedValue.length > 50) return 'Máximo 50 caracteres';
+                    if (value!.contains('  ')) return 'No espacios dobles';
+                    return null;
+                  },
+                  onChanged: (value) => _editedQuiz.title = value.trim(),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Expanded(
                   child:
                       _editedQuiz.questions.isEmpty
                           ? _buildEmptyState()
                           : ListView.separated(
                             itemCount: _editedQuiz.questions.length,
-                            separatorBuilder: (_, __) => Divider(height: 20),
+                            separatorBuilder:
+                                (_, __) => const Divider(height: 20),
                             itemBuilder:
                                 (context, index) => Card(
                                   elevation: 2,
                                   child: ListTile(
-                                    contentPadding: EdgeInsets.symmetric(
+                                    contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 16,
                                     ),
                                     title: Text(
@@ -133,14 +214,14 @@ class _EditQuizScreenState extends State<EditQuizScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         IconButton(
-                                          icon: Icon(
+                                          icon: const Icon(
                                             Icons.edit,
                                             color: Colors.blue,
                                           ),
                                           onPressed: () => _editQuestion(index),
                                         ),
                                         IconButton(
-                                          icon: Icon(
+                                          icon: const Icon(
                                             Icons.delete,
                                             color: Colors.red,
                                           ),
@@ -159,16 +240,16 @@ class _EditQuizScreenState extends State<EditQuizScreen> {
           ),
         ),
         floatingActionButton: FloatingActionButton(
-          child: Icon(Icons.add),
+          child: const Icon(Icons.add),
           onPressed: () async {
             final newQuestion = await showDialog<Question>(
               context: context,
               builder:
                   (context) => EditQuestionDialog(
                     initialQuestion: Question(
-                      questionText: '',
-                      correctAnswer: '',
-                      wrongAnswers: ['', ''],
+                      questionText: 'Nueva pregunta',
+                      correctAnswer: 'Respuesta correcta',
+                      wrongAnswers: ['Opción 1', 'Opción 2'],
                     ),
                   ),
             );
@@ -186,9 +267,9 @@ class _EditQuizScreenState extends State<EditQuizScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.quiz_outlined, size: 80, color: Colors.grey),
-          SizedBox(height: 20),
-          Text(
+          const Icon(Icons.quiz_outlined, size: 80, color: Colors.grey),
+          const SizedBox(height: 20),
+          const Text(
             'No hay preguntas en este quiz\nPresiona el botón + para agregar',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey, fontSize: 16),

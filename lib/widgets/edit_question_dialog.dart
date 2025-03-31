@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/question.dart';
+import 'package:flutter/services.dart';
+import 'package:quizlet/models/question.dart';
 
 class EditQuestionDialog extends StatefulWidget {
   final Question initialQuestion;
@@ -12,98 +13,122 @@ class EditQuestionDialog extends StatefulWidget {
 
 class _EditQuestionDialogState extends State<EditQuestionDialog> {
   late Question _editedQuestion;
-  final List<TextEditingController> _wrongAnswerControllers = [];
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
-    // Crear copia editable de la pregunta
-    _editedQuestion = Question(
-      questionText: widget.initialQuestion.questionText,
-      correctAnswer: widget.initialQuestion.correctAnswer,
-      wrongAnswers: List.from(widget.initialQuestion.wrongAnswers),
-    );
-
-    // Inicializar controladores con valores actuales
-    for (var answer in _editedQuestion.wrongAnswers) {
-      _wrongAnswerControllers.add(TextEditingController(text: answer));
-    }
-  }
-
-  @override
-  void dispose() {
-    // Limpiar controladores
-    for (var c in _wrongAnswerControllers) {
-      c.dispose();
-    }
-    super.dispose();
-  }
-
-  void _saveChanges() {
-    // Validar campos
-    if (_editedQuestion.questionText.isEmpty ||
-        _editedQuestion.correctAnswer.isEmpty ||
-        _wrongAnswerControllers.any((c) => c.text.isEmpty)) {
-      return;
-    }
-
-    // Crear nueva pregunta actualizada
-    final updatedQuestion = Question(
-      questionText: _editedQuestion.questionText,
-      correctAnswer: _editedQuestion.correctAnswer,
-      wrongAnswers: _wrongAnswerControllers.map((c) => c.text).toList(),
-    );
-
-    Navigator.pop(context, updatedQuestion);
+    _editedQuestion = widget.initialQuestion.copyWith();
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Editar Pregunta'),
+      title: const Text('Editar Pregunta'),
       content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              initialValue: _editedQuestion.questionText,
-              onChanged: (value) => _editedQuestion.questionText = value,
-              decoration: InputDecoration(
-                labelText: 'Pregunta',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 15),
-            TextFormField(
-              initialValue: _editedQuestion.correctAnswer,
-              onChanged: (value) => _editedQuestion.correctAnswer = value,
-              decoration: InputDecoration(
-                labelText: 'Respuesta Correcta',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            ..._wrongAnswerControllers.map(
-              (controller) => Padding(
-                padding: EdgeInsets.only(top: 10),
-                child: TextFormField(
-                  controller: controller,
-                  decoration: InputDecoration(
-                    labelText: 'Respuesta Incorrecta',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ),
-            ),
-          ],
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildQuestionField(),
+              const SizedBox(height: 20),
+              _buildCorrectAnswerField(),
+              const SizedBox(height: 20),
+              ..._buildWrongAnswersFields(),
+            ],
+          ),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text('Cancelar'),
+          child: const Text('Cancelar'),
         ),
-        ElevatedButton(onPressed: _saveChanges, child: Text('Guardar Cambios')),
+        TextButton(onPressed: _saveChanges, child: const Text('Guardar')),
       ],
     );
+  }
+
+  Widget _buildQuestionField() {
+    return TextFormField(
+      initialValue: _editedQuestion.questionText,
+      decoration: const InputDecoration(
+        labelText: 'Pregunta',
+        border: OutlineInputBorder(),
+      ),
+      inputFormatters: [
+        FilteringTextInputFormatter.deny(RegExp(r'^\s|')),
+        LengthLimitingTextInputFormatter(50),
+      ],
+      maxLength: 50,
+      validator: (value) {
+        final trimmedValue = value?.trim() ?? '';
+        if (trimmedValue.isEmpty) return 'Campo obligatorio';
+        if (trimmedValue.length > 50) return 'Máximo 50 caracteres';
+        if (value!.contains('  ')) return 'No espacios dobles';
+        return null;
+      },
+      onChanged: (value) => _editedQuestion.questionText = value.trim(),
+    );
+  }
+
+  Widget _buildCorrectAnswerField() {
+    return TextFormField(
+      initialValue: _editedQuestion.correctAnswer,
+      decoration: const InputDecoration(
+        labelText: 'Respuesta Correcta',
+        border: OutlineInputBorder(),
+      ),
+      inputFormatters: [
+        FilteringTextInputFormatter.deny(RegExp(r'^\s|')),
+        LengthLimitingTextInputFormatter(50),
+      ],
+      maxLength: 50,
+      validator: (value) {
+        final trimmedValue = value?.trim() ?? '';
+        if (trimmedValue.isEmpty) return 'Campo obligatorio';
+        if (trimmedValue.length > 50) return 'Máximo 50 caracteres';
+        if (value!.contains('  ')) return 'No espacios dobles';
+        return null;
+      },
+      onChanged: (value) => _editedQuestion.correctAnswer = value.trim(),
+    );
+  }
+
+  List<Widget> _buildWrongAnswersFields() {
+    return List.generate(
+      _editedQuestion.wrongAnswers.length,
+      (index) => Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: TextFormField(
+          initialValue: _editedQuestion.wrongAnswers[index],
+          decoration: InputDecoration(
+            labelText: 'Respuesta Incorrecta ${index + 1}',
+            border: const OutlineInputBorder(),
+          ),
+          inputFormatters: [
+            FilteringTextInputFormatter.deny(RegExp(r'^\s|')),
+            LengthLimitingTextInputFormatter(50),
+          ],
+          maxLength: 50,
+          validator: (value) {
+            final trimmedValue = value?.trim() ?? '';
+            if (trimmedValue.isEmpty) return 'Campo obligatorio';
+            if (trimmedValue.length > 50) return 'Máximo 50 caracteres';
+            if (value!.contains('  ')) return 'No espacios dobles';
+            return null;
+          },
+          onChanged:
+              (value) => _editedQuestion.wrongAnswers[index] = value.trim(),
+        ),
+      ),
+    );
+  }
+
+  void _saveChanges() {
+    if (_formKey.currentState!.validate()) {
+      Navigator.pop(context, _editedQuestion);
+    }
   }
 }
